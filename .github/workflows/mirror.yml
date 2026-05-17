@@ -1,0 +1,59 @@
+---
+name: Mirror strict-kwargs releases
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 02:00 UTC. '*' is special in YAML, so the string is quoted.
+    - cron: 0 2 * * *
+
+# Deny by default; the job opts into the minimum scope it needs.
+permissions: {}
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Push the version bump + tag and create the matching release.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Credentials must persist so the bump commit/tag can be pushed.
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Sync to the latest strict-kwargs release
+        id: sync
+        run: |
+          result="$(python update.py)"
+          echo "$result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the new version
+        if: startsWith(steps.sync.outputs.result, 'changed=')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESULT: ${{ steps.sync.outputs.result }}
+        run: |
+          version="${RESULT#changed=}"
+          if git rev-parse "refs/tags/${version}" >/dev/null 2>&1; then
+            echo "Tag ${version} already exists; nothing to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git commit -m "Mirror strict-kwargs ${version}"
+          git tag "${version}"
+          git push origin HEAD
+          git push origin "refs/tags/${version}"
+          gh release create "${version}" \
+            --title "${version}" \
+            --notes "Mirror of [strict-kwargs ${version}](https://github.com/adamtheturtle/strict-kwargs/releases/tag/${version})."

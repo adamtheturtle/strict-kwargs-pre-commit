@@ -1,0 +1,10 @@
+- id: strict-kwargs
+  name: strict-kwargs
+  description: Enforce keyword arguments at call sites.
+  entry: strict-kwargs
+  language: python
+  types: [python]
+  # strict-kwargs does one-time import-closure indexing per invocation, so a
+  # single process over all files is faster than pre-commit's default
+  # batched/parallel invocation.
+  require_serial: true
