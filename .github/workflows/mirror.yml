@@ -3,6 +3,8 @@ name: Mirror strict-kwargs releases
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [strict-kwargs-released]
   schedule:
     # Daily at 02:00 UTC. '*' is special in YAML, so the string is quoted.
     - cron: 0 2 * * *
@@ -30,8 +32,14 @@ jobs:
 
       - name: Sync to the latest strict-kwargs release
         id: sync
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
         run: |
-          result="$(python update.py)"
+          if [ -n "$VERSION" ]; then
+            result="$(python update.py "$VERSION")"
+          else
+            result="$(python update.py)"
+          fi
           echo "$result"
           echo "result=$result" >> "$GITHUB_OUTPUT"
 
