@@ -28,10 +28,15 @@ def _pypi() -> dict[str, Any]:
     return data
 
 
+def _normalize_version(version: str) -> str:
+    # GitHub tags use -post.N syntax; PyPI normalises to .postN
+    return re.sub(r"-post\.(\d+)$", r".post\1", version)
+
+
 def main(argv: list[str]) -> int:
     data = _pypi()
     if len(argv) > 1:
-        target = argv[1]
+        target = _normalize_version(argv[1])
         if target not in data["releases"]:
             available = ", ".join(sorted(data["releases"]))
             message = (
