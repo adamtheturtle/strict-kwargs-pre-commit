@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "strict-kwargs-pre-commit"
-version = "2026.5.16.post1"
+version = "2026.5.18.post3"
 description = "A pre-commit mirror of strict-kwargs (installs the published PyPI wheel; no Rust toolchain needed)."
 readme = "README.md"
 license = { text = "MIT" }
@@ -22,7 +22,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "strict-kwargs==2026.5.16.post1",
+    "strict-kwargs==2026.5.18.post3",
 ]
 
 urls.Source = "https://github.com/adamtheturtle/strict-kwargs-pre-commit"
