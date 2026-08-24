@@ -53,3 +53,7 @@ python update.py 2026.5.16  # sync to a specific version
 
 MIT — see [LICENSE](LICENSE). strict-kwargs itself is a separate project
 under its own license.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
