@@ -16,7 +16,7 @@ Add this to your project's `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/adamtheturtle/strict-kwargs-pre-commit
-    rev: 2026.5.16.post1  # pin to the latest release tag
+    rev: 2026.8.27.post2  # pin to the latest release tag
     hooks:
       - id: strict-kwargs
 ```
