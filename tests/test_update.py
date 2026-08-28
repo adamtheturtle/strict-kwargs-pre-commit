@@ -11,7 +11,7 @@ import urllib.error
 from pathlib import Path
 
 import pytest
-from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
+from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE
 
 import update
 
@@ -37,7 +37,8 @@ def test_bumps_readme_rev(mirror: tuple[Path, Path]) -> None:
 
 
 def test_reports_changed(
-    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+    mirror: tuple[Path, Path],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A bump prints ``changed=`` -- the string mirror.yml gates publishing on."""
     assert update.main(["update.py"]) == 0
@@ -45,7 +46,8 @@ def test_reports_changed(
 
 
 def test_reports_unchanged_when_in_sync(
-    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+    mirror: tuple[Path, Path],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A second run is a no-op, so the workflow does not re-tag."""
     update.main(["update.py"])
@@ -70,7 +72,8 @@ def test_explicit_version_accepts_upstream_tag_form(mirror: tuple[Path, Path]) -
 
 
 def test_unknown_version_is_rejected(
-    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+    mirror: tuple[Path, Path],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A version that is not on PyPI fails before anything is written."""
     pyproject, _ = mirror
@@ -124,7 +127,8 @@ def test_skips_yanked_latest_release(
 
 
 def test_release_with_no_files_is_skipped(
-    mirror: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+    mirror: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A registered version with no uploaded files cannot be installed."""
     pyproject, _ = mirror
@@ -163,7 +167,8 @@ def test_unparseable_version_is_skipped() -> None:
 
 
 def test_verify_catches_version_line_that_stopped_matching(
-    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+    mirror: tuple[Path, Path],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Regression test for #12.
 
@@ -173,8 +178,10 @@ def test_verify_catches_version_line_that_stopped_matching(
     pyproject, _ = mirror
     pyproject.write_text(
         PYPROJECT_TEMPLATE.format(version="2026.8.16").replace(
-            'version = "2026.8.16"', 'version="2026.8.16"', 1
-        )
+            'version = "2026.8.16"',
+            'version="2026.8.16"',
+            1,
+        ),
     )
 
     with pytest.raises(SystemExit) as excinfo:
@@ -188,8 +195,10 @@ def test_verify_catches_dependency_pin_drift(mirror: tuple[Path, Path]) -> None:
     pyproject, _ = mirror
     pyproject.write_text(
         PYPROJECT_TEMPLATE.format(version="2026.8.16").replace(
-            '"strict-kwargs==2026.8.16"', '"strict-kwargs>=2026.8.16"', 1
-        )
+            '"strict-kwargs==2026.8.16"',
+            '"strict-kwargs>=2026.8.16"',
+            1,
+        ),
     )
 
     with pytest.raises(SystemExit) as excinfo:
@@ -215,7 +224,9 @@ def test_failed_verification_writes_nothing(mirror: tuple[Path, Path]) -> None:
     """
     pyproject, readme = mirror
     broken = PYPROJECT_TEMPLATE.format(version="2026.8.16").replace(
-        'version = "2026.8.16"', 'version="2026.8.16"', 1
+        'version = "2026.8.16"',
+        'version="2026.8.16"',
+        1,
     )
     pyproject.write_text(broken)
     readme_before = readme.read_text()
@@ -238,7 +249,8 @@ def test_written_pyproject_is_still_valid_toml(mirror: tuple[Path, Path]) -> Non
 
 
 def test_fetch_retries_transient_failures(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Regression test for #18: a blip retries instead of failing the cron."""
     attempts = []

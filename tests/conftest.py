@@ -26,7 +26,7 @@ PYPI_FIXTURE: dict[str, object] = {
         "2026.8.24": [{"filename": "w.whl", "yanked": False, "yanked_reason": None}],
         "2026.8.27": [{"filename": "w.whl", "yanked": False, "yanked_reason": None}],
         "2026.8.27.post2": [
-            {"filename": "w.whl", "yanked": False, "yanked_reason": None}
+            {"filename": "w.whl", "yanked": False, "yanked_reason": None},
         ],
     },
 }
@@ -64,9 +64,10 @@ repos:
 
 @pytest.fixture(name="mirror")
 def mirror_fixture(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[Path, Path]:
-    """A throwaway mirror checkout pinned to 2026.8.16, with PyPI stubbed out.
+    """Build a throwaway mirror checkout pinned to 2026.8.16, PyPI stubbed out.
 
     Returns the ``(pyproject, readme)`` paths. No test touches the network.
     """

@@ -27,7 +27,10 @@ import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 PYPI_JSON = "https://pypi.org/pypi/strict-kwargs/json"
 # A scheduled run that trips over a transient PyPI blip should retry rather
@@ -37,11 +40,15 @@ PYPROJECT = Path(__file__).parent / "pyproject.toml"
 README = Path(__file__).parent / "README.md"
 
 
-def _pypi(*, attempts: int = FETCH_ATTEMPTS, sleep: Any = time.sleep) -> dict[str, Any]:
+def _pypi(
+    *,
+    attempts: int = FETCH_ATTEMPTS,
+    sleep: Callable[[float], object] = time.sleep,
+) -> dict[str, Any]:
     """Fetch the strict-kwargs release metadata, retrying transient failures."""
     for attempt in range(attempts):
         try:
-            with urllib.request.urlopen(PYPI_JSON, timeout=30) as response:  # noqa: S310
+            with urllib.request.urlopen(PYPI_JSON, timeout=30) as response:
                 data: dict[str, Any] = json.load(response)
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
             if attempt == attempts - 1:
@@ -72,7 +79,7 @@ def _is_usable(files: list[dict[str, Any]]) -> bool:
 
 
 def _yank_reason(files: list[dict[str, Any]]) -> str:
-    """The first stated yank reason for a release, or a placeholder."""
+    """Return the first stated yank reason for a release, or a placeholder."""
     for file in files:
         reason = file.get("yanked_reason")
         if reason:
@@ -82,7 +89,7 @@ def _yank_reason(files: list[dict[str, Any]]) -> str:
 
 
 def _latest_usable(data: dict[str, Any]) -> str:
-    """The newest release that is neither yanked nor file-less.
+    """Return the newest release that is neither yanked nor file-less.
 
     ``info.version`` is not trusted for this: it can name a yanked release, and
     auto-mirroring one would hand every consumer a release PyPI has withdrawn.
@@ -161,7 +168,7 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
     project = parsed["project"]
     if project["version"] != target:
         problems.append(
-            f"pyproject.toml version is {project['version']!r}, expected {target!r}"
+            f"pyproject.toml version is {project['version']!r}, expected {target!r}",
         )
 
     expected_pin = f"strict-kwargs=={target}"
@@ -172,7 +179,7 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
     ]
     if pins != [expected_pin]:
         problems.append(
-            f"pyproject.toml dependency pins are {pins!r}, expected [{expected_pin!r}]"
+            f"pyproject.toml dependency pins are {pins!r}, expected [{expected_pin!r}]",
         )
 
     if not re.search(rf"^\s*rev: {re.escape(target)}\b", readme, flags=re.MULTILINE):
@@ -186,14 +193,14 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
 
 
 def main(argv: list[str]) -> int:
+    """Sync the mirror to the requested version and report what changed."""
     data = _pypi()
     if len(argv) > 1:
         target = _normalize_version(argv[1])
         if target not in data["releases"]:
             available = ", ".join(sorted(data["releases"]))
             message = (
-                f"error: strict-kwargs {target} is not on PyPI "
-                f"(available: {available})"
+                f"error: strict-kwargs {target} is not on PyPI (available: {available})"
             )
             print(message, file=sys.stderr)
             return 1

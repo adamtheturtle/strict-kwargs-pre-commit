@@ -1,0 +1,43 @@
+---
+# Developer tooling for this repository.
+#
+# This is NOT the hook definition consumers use -- that is
+# `.pre-commit-hooks.yaml`. Run these with `pre-commit run --all-files`; CI
+# runs the same set.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.0
+    hooks:
+      # Catches a malformed workflow before pushing it and watching Actions
+      # reject it.
+      - id: check-github-workflows
+      - id: check-dependabot
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      # tests/e2e.sh runs on three platforms; shell portability bugs there
+      # are expensive to debug from CI logs.
+      - id: shellcheck
+
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v1.29.0
+    hooks:
+      # This repo's workflows hold contents:write and push tags.
+      - id: zizmor
