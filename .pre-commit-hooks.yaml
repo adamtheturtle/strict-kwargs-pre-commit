@@ -1,7 +1,10 @@
 - id: strict-kwargs
   name: strict-kwargs
   description: Enforce keyword arguments at call sites.
-  entry: strict-kwargs
+  # `check` is required: the CLI sets `subcommand_required`, so without it
+  # pre-commit's appended filenames are parsed as a subcommand name and every
+  # run fails with `error: unrecognized subcommand` (exit 2).
+  entry: strict-kwargs check
   language: python
   types: [python]
   # strict-kwargs does one-time import-closure indexing per invocation, so a
