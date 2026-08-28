@@ -370,10 +370,12 @@ def test_mirror_revision_of_an_older_version_is_replaced(
     assert "mirror.1" not in readme.read_text()
 
 
-def test_verify_rejects_an_unrelated_mirror_revision(mirror: tuple[Path, Path]) -> None:
-    """`-mirror.N` is not a wildcard: it must still name the target version."""
-    _, readme = mirror
+def test_verify_rejects_an_unrelated_mirror_revision() -> None:
+    """`-mirror.N` is not a wildcard: it must still name the target version.
 
+    Takes no fixture: `_verify` is pure, so the candidate contents are passed
+    directly rather than staged on disk.
+    """
     with pytest.raises(SystemExit) as excinfo:
         update._verify(
             "2026.8.27.post2",
