@@ -31,3 +31,15 @@ urls.Upstream = "https://github.com/adamtheturtle/strict-kwargs"
 [tool.setuptools]
 # No modules: build an empty wheel that exists only to carry the dependency.
 py-modules = []
+
+# Test-only; the published wheel stays code-free and carries no dev deps.
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `update.py` sits at the repository root, not in a package.
+pythonpath = ["."]
+addopts = "--strict-markers -ra"
