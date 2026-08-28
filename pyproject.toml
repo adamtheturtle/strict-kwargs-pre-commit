@@ -58,6 +58,10 @@ ignore = [
     "TRY003",
     # Assertions are how tests assert.
     "S101",
+    # Ruff's own advice when the formatter is in use: COM812 adds trailing
+    # commas that the formatter then removes, so `ruff check --fix` and
+    # `ruff format` fight each other and pre-commit never converges.
+    "COM812",
 ]
 
 [tool.ruff.lint.per-file-ignores]
