@@ -128,7 +128,11 @@ def _rewrite_pyproject(text: str, target: str) -> str:
 
 
 def _rewrite_readme(text: str, target: str) -> str:
-    """Return ``text`` with the example config's ``rev:`` set to ``target``.
+    """Return ``text`` with every example config's ``rev:`` set to ``target``.
+
+    Every ``rev:``, not just the first: the README carries more than one
+    example config, and a rev left unrewritten is exactly the stale pin this
+    function exists to prevent.
 
     The mirror's git tags are the PyPI version string verbatim, so the ``rev:``
     a consumer pins is exactly ``target`` -- no ``-post.N`` translation needed
@@ -138,7 +142,6 @@ def _rewrite_readme(text: str, target: str) -> str:
         r"^(\s*rev: )\S+",
         lambda match: f"{match.group(1)}{target}",
         text,
-        count=1,
         flags=re.MULTILINE,
     )
 
@@ -175,8 +178,12 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
             f"pyproject.toml dependency pins are {pins!r}, expected [{expected_pin!r}]"
         )
 
-    if not re.search(rf"^\s*rev: {re.escape(target)}\b", readme, flags=re.MULTILINE):
-        problems.append(f"README example config has no 'rev: {target}' line")
+    revs = re.findall(r"^\s*rev: (\S+)", readme, flags=re.MULTILINE)
+    if not revs:
+        problems.append("README has no example config with a 'rev:' line")
+    elif set(revs) != {target}:
+        stale = sorted(set(revs) - {target})
+        problems.append(f"README rev: lines still pin {stale}, expected {target!r}")
 
     if problems:
         message = "error: sync did not apply cleanly:\n" + "\n".join(

@@ -11,7 +11,7 @@ import urllib.error
 from pathlib import Path
 
 import pytest
-from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE
+from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
 
 import update
 
@@ -204,7 +204,7 @@ def test_verify_catches_missing_readme_rev(mirror: tuple[Path, Path]) -> None:
 
     with pytest.raises(SystemExit) as excinfo:
         update.main(["update.py"])
-    assert "no 'rev: 2026.8.27.post2' line" in str(excinfo.value)
+    assert "no example config with a 'rev:' line" in str(excinfo.value)
 
 
 def test_failed_verification_writes_nothing(mirror: tuple[Path, Path]) -> None:
@@ -287,3 +287,42 @@ def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(json.JSONDecodeError):
         update._pypi(attempts=2, sleep=lambda _: None)
     assert len(calls) == 2
+
+
+def test_rewrites_every_readme_rev(mirror: tuple[Path, Path]) -> None:
+    """The README carries more than one example config; all of them sync.
+
+    Rewriting only the first would leave the later examples pinning a stale
+    version -- the same bug as #5, just further down the page.
+    """
+    _, readme = mirror
+    readme.write_text(
+        README_TEMPLATE.format(version="2026.8.16")
+        + "\n"
+        + README_TEMPLATE.format(version="2026.8.16")
+    )
+
+    assert update.main(["update.py"]) == 0
+    text = readme.read_text()
+    assert text.count("rev: 2026.8.27.post2") == 2
+    assert "2026.8.16" not in text
+
+
+def test_verify_catches_a_stale_second_rev(
+    mirror: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A rev the rewrite could not reach fails the run rather than shipping."""
+    _, readme = mirror
+    readme.write_text(
+        README_TEMPLATE.format(version="2026.8.16") + "\n    rev: 1999.1.1\n"
+    )
+    # Simulate a rewrite that misses one: only the first rev is updated.
+    monkeypatch.setattr(
+        update,
+        "_rewrite_readme",
+        lambda text, target: text.replace("2026.8.16", target, 1),
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        update.main(["update.py"])
+    assert "still pin ['1999.1.1']" in str(excinfo.value)
