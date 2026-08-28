@@ -20,7 +20,7 @@ Add this to your project's `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/adamtheturtle/strict-kwargs-pre-commit
-    rev: 2026.8.28.post1  # pin to the latest release tag
+    rev: 2026.8.28.post2  # pin to the latest release tag
     hooks:
       - id: strict-kwargs
 ```
@@ -70,7 +70,7 @@ across machines and over time:
 ```yaml
 repos:
   - repo: https://github.com/adamtheturtle/strict-kwargs-pre-commit
-    rev: 2026.8.28.post1
+    rev: 2026.8.28.post2
     hooks:
       - id: strict-kwargs
         additional_dependencies: ["ty==0.0.75"]
