@@ -47,6 +47,12 @@ jobs:
         with:
           python-version: '3.13'
 
+      # For `uv tool install pre-commit` in the end-to-end check below.
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: '**/pyproject.toml'
+
       - name: Sync to the requested strict-kwargs release
         id: sync
         env:
@@ -63,10 +69,10 @@ jobs:
           echo "$result"
           echo "result=$result" >> "$GITHUB_OUTPUT"
 
-      - name: Publish the new version
+      - name: Skip if this version is already published
+        id: guard
         if: startsWith(steps.sync.outputs.result, 'changed=')
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RESULT: ${{ steps.sync.outputs.result }}
         run: |
           version="${RESULT#changed=}"
@@ -78,20 +84,101 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/${version}" \
               >/dev/null 2>&1; then
             echo "Tag ${version} already exists; nothing to publish."
-            exit 0
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Commit the bump
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          VERSION: ${{ steps.guard.outputs.version }}
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml README.md
-          git commit -m "Mirror strict-kwargs ${version}"
-          git tag "${version}"
+          git commit -m "Mirror strict-kwargs ${VERSION}"
+
+      - name: Check the release publishes a wheel for every platform
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          VERSION: ${{ steps.guard.outputs.version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.request
+
+          version = os.environ["VERSION"]
+          url = f"https://pypi.org/pypi/strict-kwargs/{version}/json"
+          with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310
+              data = json.load(response)
+
+          wheels = [
+              file["filename"]
+              for file in data["urls"]
+              if file["filename"].endswith(".whl") and not file.get("yanked", False)
+          ]
+          print("Published wheels:", *wheels, sep="\n  ")
+
+          # The whole point of this mirror is that a consumer never needs a
+          # Rust toolchain. A release missing a wheel breaks that promise on
+          # that platform, and there is no sdist to fall back to.
+          required = {
+              "macosx": "macOS arm64",
+              "manylinux": "Linux x86_64",
+              "win_amd64": "Windows x86_64",
+          }
+          missing = [
+              label
+              for fragment, label in required.items()
+              if not any(fragment in wheel for wheel in wheels)
+          ]
+          if missing:
+              sys.exit(f"error: {version} publishes no wheel for: {', '.join(missing)}")
+          PY
+
+      - name: Run the hook end to end at the new version
+        if: steps.guard.outputs.publish == 'true'
+        run: |
+          uv tool install pre-commit
+          # e2e.sh pins the consumer to this checkout's HEAD, which is now the
+          # bump commit, so this exercises the version about to be tagged.
+          tests/e2e.sh
+
+      - name: Tag, push and release
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.guard.outputs.version }}
+        run: |
+          git tag "${VERSION}"
 
           # Atomic: a rejected tag must not leave a bump commit on main with
           # no matching tag or release.
-          git push --atomic origin HEAD "refs/tags/${version}"
+          git push --atomic origin HEAD "refs/tags/${VERSION}"
 
-          gh release create "${version}" \
-            --title "${version}" \
-            --notes "Mirror of [strict-kwargs ${version}](https://github.com/adamtheturtle/strict-kwargs/releases/tag/${version})."
+          # Upstream tags a post-release as `-post.N`; PyPI (and so this
+          # mirror) normalises it to `.postN`. Linking the unconverted string
+          # produced a 404 for every post-release.
+          upstream_tag="${VERSION/.post/-post.}"
+          upstream_url="https://github.com/adamtheturtle/strict-kwargs/releases/tag/${upstream_tag}"
+
+          notes="${RUNNER_TEMP}/release-notes.md"
+          printf 'Mirror of [strict-kwargs %s](%s).\n' "${VERSION}" "${upstream_url}" \
+            > "${notes}"
+
+          # Best effort: a missing or empty upstream release still publishes.
+          if body="$(gh release view "${upstream_tag}" \
+              --repo adamtheturtle/strict-kwargs --json body --jq .body 2>/dev/null)" \
+              && [ -n "${body}" ]; then
+            {
+              printf '\n---\n\n## Upstream release notes\n\n'
+              printf '%s\n' "${body}"
+            } >> "${notes}"
+          fi
+
+          gh release create "${VERSION}" --title "${VERSION}" --notes-file "${notes}"
