@@ -338,3 +338,60 @@ def test_verify_catches_a_stale_second_rev(
     with pytest.raises(SystemExit) as excinfo:
         update.main(["update.py"])
     assert "still pin ['1999.1.1']" in str(excinfo.value)
+
+
+def test_mirror_revision_rev_is_left_alone(mirror: tuple[Path, Path]) -> None:
+    """A `-mirror.N` rev is newer than the bare version, so syncing keeps it.
+
+    Rewriting it to the bare version would point the README back at an older
+    tag -- the one without the mirror-only fix.
+    """
+    pyproject, readme = mirror
+    pyproject.write_text(PYPROJECT_TEMPLATE.format(version="2026.8.27.post2"))
+    readme.write_text(README_TEMPLATE.format(version="2026.8.27.post2-mirror.1"))
+
+    assert update.main(["update.py"]) == 0
+    assert "rev: 2026.8.27.post2-mirror.1" in readme.read_text()
+
+
+def test_mirror_revision_reports_unchanged(
+    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The daily cron must stay quiet after a mirror-only re-release.
+
+    Without this the sync would report `changed=` every single day and try to
+    re-tag a version that is already published.
+    """
+    pyproject, readme = mirror
+    pyproject.write_text(PYPROJECT_TEMPLATE.format(version="2026.8.27.post2"))
+    readme.write_text(README_TEMPLATE.format(version="2026.8.27.post2-mirror.1"))
+
+    assert update.main(["update.py"]) == 0
+    assert capsys.readouterr().out.strip() == "unchanged=2026.8.27.post2"
+
+
+def test_mirror_revision_of_an_older_version_is_replaced(
+    mirror: tuple[Path, Path],
+) -> None:
+    """A mirror revision of a *superseded* version is still stale."""
+    _, readme = mirror
+    readme.write_text(README_TEMPLATE.format(version="2026.8.16-mirror.1"))
+
+    assert update.main(["update.py"]) == 0
+    assert "rev: 2026.8.27.post2" in readme.read_text()
+    assert "mirror.1" not in readme.read_text()
+
+
+def test_verify_rejects_an_unrelated_mirror_revision() -> None:
+    """`-mirror.N` is not a wildcard: it must still name the target version.
+
+    Takes no fixture: `_verify` is pure, so the candidate contents are passed
+    directly rather than staged on disk.
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        update._verify(
+            "2026.8.27.post2",
+            pyproject=PYPROJECT_TEMPLATE.format(version="2026.8.27.post2"),
+            readme=README_TEMPLATE.format(version="1999.1.1-mirror.1"),
+        )
+    assert "still pin ['1999.1.1-mirror.1']" in str(excinfo.value)

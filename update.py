@@ -33,6 +33,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 PYPI_JSON = "https://pypi.org/pypi/strict-kwargs/json"
+# A mirror-only fix has no upstream version to be released under, so it is
+# published as `<upstream version>-mirror.N`. Only the `strict-kwargs==` pin
+# has to equal the upstream version; the tag consumers pin does not.
+MIRROR_REVISION = r"(?:-mirror\.\d+)?"
 # A scheduled run that trips over a transient PyPI blip should retry rather
 # than page the maintainer with a red daily cron.
 FETCH_ATTEMPTS = 3
@@ -145,12 +149,17 @@ def _rewrite_readme(text: str, target: str) -> str:
     a consumer pins is exactly ``target`` -- no ``-post.N`` translation needed
     here, unlike upstream (see ``_normalize_version``).
     """
-    return re.sub(
-        r"^(\s*rev: )\S+",
-        lambda match: f"{match.group(1)}{target}",
-        text,
-        flags=re.MULTILINE,
-    )
+    already_current = re.compile(re.escape(target) + MIRROR_REVISION)
+
+    def replace(match: re.Match[str]) -> str:
+        # Leave a mirror revision of `target` alone: it is *newer* than the
+        # bare version, so rewriting it would point the README back at an
+        # older tag and report a spurious change.
+        if already_current.fullmatch(match.group(2)):
+            return match.group(0)
+        return f"{match.group(1)}{target}"
+
+    return re.sub(r"^(\s*rev: )(\S+)", replace, text, flags=re.MULTILINE)
 
 
 def _verify(target: str, *, pyproject: str, readme: str) -> None:
@@ -186,10 +195,10 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
         )
 
     revs = re.findall(r"^\s*rev: (\S+)", readme, flags=re.MULTILINE)
+    acceptable = re.compile(re.escape(target) + MIRROR_REVISION)
     if not revs:
         problems.append("README has no example config with a 'rev:' line")
-    elif set(revs) != {target}:
-        stale = sorted(set(revs) - {target})
+    elif stale := sorted({rev for rev in revs if not acceptable.fullmatch(rev)}):
         problems.append(f"README rev: lines still pin {stale}, expected {target!r}")
 
     if problems:

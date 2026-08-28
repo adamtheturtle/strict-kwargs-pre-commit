@@ -107,6 +107,47 @@ The two only differ for post-releases. Always pin `rev:` to a tag from
 an upstream tag name copied across will not resolve. `update.py` accepts
 either form and normalises it.
 
+### Mirror revisions
+
+Occasionally something needs fixing *here* — in the hook definition or the
+packaging — rather than upstream. Such a change has no upstream release to
+ride along with, so it is published as:
+
+```text
+<upstream version>-mirror.<N>
+```
+
+for example `2026.8.27.post2-mirror.1`. That tag installs the **same**
+`strict-kwargs` version as the tag it derives from; only the mirror's own
+files differ. `pre-commit autoupdate` resolves the newest tag on the default
+branch, so it moves to a mirror revision like any other release.
+
+Ordinary syncs are unaffected: when upstream next releases, the tag is a plain
+version again.
+
+#### Cutting one
+
+Rare enough not to be worth a workflow. From an up-to-date `main` with the fix
+already merged:
+
+1. Point every `rev:` in `README.md` at the new tag — `<version>-mirror.1`,
+   or the next `N` if one already exists. Leave `pyproject.toml` alone: the
+   `strict-kwargs==` pin must keep naming the upstream version.
+2. Commit, then tag and publish:
+
+   ```bash
+   tag=2026.8.27.post2-mirror.1     # the tag from step 1
+
+   git commit -am "Mirror revision ${tag}"
+   git tag "${tag}"
+   git push --atomic origin HEAD "refs/tags/${tag}"
+   gh release create "${tag}" --title "${tag}" \
+     --notes "Mirror-only fix; installs the same strict-kwargs release."
+   ```
+
+`update.py` recognises a `rev:` carrying a mirror revision of the current
+version and leaves it in place, so the daily sync stays quiet afterwards.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). strict-kwargs itself is a separate project
