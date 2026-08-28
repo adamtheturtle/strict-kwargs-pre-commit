@@ -4,3 +4,6 @@ build/
 dist/
 *.egg-info/
 .venv/
+
+# uv writes this for the dev group; the published wheel is unaffected.
+uv.lock
