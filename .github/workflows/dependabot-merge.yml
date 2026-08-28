@@ -9,7 +9,17 @@ name: Dependabot auto-merge
 # holds the merge back. Enabling branch protection with CI required is still
 # worth doing -- it closes the same hole for human PRs -- but it is repo
 # settings, not something a commit can do.
-on:
+#
+# zizmor flags `workflow_run` as fundamentally insecure, and for the usual
+# shape of it that is right: it runs in the base repository with write
+# permissions and is reachable from a fork's pull request. The danger is
+# executing PR-controlled content under those permissions.
+#
+# This job never does. It checks nothing out, runs no build, and executes no
+# code from the pull request -- its only step calls `gh pr merge` after
+# re-reading the author and head SHA from the API. So the untrusted-code
+# path the audit warns about does not exist here.
+on:  # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows: [CI]
     types: [completed]
