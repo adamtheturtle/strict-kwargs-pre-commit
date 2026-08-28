@@ -3,6 +3,15 @@ name: Mirror strict-kwargs releases
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          strict-kwargs version to mirror. Leave empty for the latest release
+          on PyPI. Accepts either tag form (2026.8.27-post.2 or
+          2026.8.27.post2).
+        type: string
+        required: false
+        default: ''
   repository_dispatch:
     types: [strict-kwargs-released]
   schedule:
@@ -11,6 +20,14 @@ on:
 
 # Deny by default; the job opts into the minimum scope it needs.
 permissions: {}
+
+# One mirror run at a time. The schedule, a release's repository_dispatch and
+# a manual run can otherwise overlap and race each other to push the same
+# bump commit and tag. Queue rather than cancel: an interrupted run could be
+# midway through publishing.
+concurrency:
+  group: mirror
+  cancel-in-progress: false
 
 jobs:
   mirror:
@@ -30,10 +47,13 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Sync to the latest strict-kwargs release
+      - name: Sync to the requested strict-kwargs release
         id: sync
         env:
-          VERSION: ${{ github.event.client_payload.version }}
+          # A manual run's input wins; otherwise the version a
+          # repository_dispatch carried; otherwise empty, meaning "latest".
+          VERSION: >-
+            ${{ inputs.version || github.event.client_payload.version }}
         run: |
           if [ -n "$VERSION" ]; then
             result="$(python update.py "$VERSION")"
@@ -50,18 +70,28 @@ jobs:
           RESULT: ${{ steps.sync.outputs.result }}
         run: |
           version="${RESULT#changed=}"
-          if git rev-parse "refs/tags/${version}" >/dev/null 2>&1; then
+
+          # Ask the remote, not the local clone: actions/checkout defaults to
+          # fetch-depth 1 and fetch-tags false, so no tags exist here and a
+          # local rev-parse would report "missing" for every tag, including
+          # ones that are already published.
+          if git ls-remote --exit-code --tags origin "refs/tags/${version}" \
+              >/dev/null 2>&1; then
             echo "Tag ${version} already exists; nothing to publish."
             exit 0
           fi
+
           git config user.name "github-actions[bot]"
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml
+          git add pyproject.toml README.md
           git commit -m "Mirror strict-kwargs ${version}"
           git tag "${version}"
-          git push origin HEAD
-          git push origin "refs/tags/${version}"
+
+          # Atomic: a rejected tag must not leave a bump commit on main with
+          # no matching tag or release.
+          git push --atomic origin HEAD "refs/tags/${version}"
+
           gh release create "${version}" \
             --title "${version}" \
             --notes "Mirror of [strict-kwargs ${version}](https://github.com/adamtheturtle/strict-kwargs/releases/tag/${version})."
