@@ -11,7 +11,7 @@ import urllib.error
 from pathlib import Path
 
 import pytest
-from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE
+from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
 
 import update
 
