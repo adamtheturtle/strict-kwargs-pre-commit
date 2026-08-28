@@ -127,15 +127,22 @@ jobs:
           # The whole point of this mirror is that a consumer never needs a
           # Rust toolchain. A release missing a wheel breaks that promise on
           # that platform, and there is no sdist to fall back to.
-          required = {
-              "macosx": "macOS arm64",
-              "manylinux": "Linux x86_64",
-              "win_amd64": "Windows x86_64",
-          }
+          # Matched on fragments rather than exact tags: the glibc and macOS
+          # floors move when the build images do, and pinning them here would
+          # fail a release for a reason that is not a problem.
+          required = [
+              (("manylinux", "x86_64"), "Linux x86_64"),
+              (("manylinux", "aarch64"), "Linux aarch64"),
+              (("macosx", "arm64"), "macOS arm64"),
+              (("macosx", "x86_64"), "macOS x86_64"),
+              (("win_amd64",), "Windows x86_64"),
+          ]
           missing = [
               label
-              for fragment, label in required.items()
-              if not any(fragment in wheel for wheel in wheels)
+              for fragments, label in required
+              if not any(
+                  all(fragment in wheel for fragment in fragments) for wheel in wheels
+              )
           ]
           if missing:
               sys.exit(f"error: {version} publishes no wheel for: {', '.join(missing)}")

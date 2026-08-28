@@ -49,10 +49,10 @@ rather than falling back to a source build.
 | Platform | Wheel |
 | --- | --- |
 | Linux x86_64 (glibc >= 2.39) | `manylinux_2_39_x86_64` |
+| Linux aarch64 (glibc >= 2.39) | `manylinux_2_39_aarch64` |
 | macOS Apple Silicon | `macosx_11_0_arm64` |
+| macOS Intel (x86_64) | `macosx_10_12_x86_64` |
 | Windows x86_64 | `win_amd64` |
-| Linux aarch64 | none — [#42](https://github.com/adamtheturtle/strict-kwargs-pre-commit/issues/42) |
-| macOS Intel (x86_64) | none — [#43](https://github.com/adamtheturtle/strict-kwargs-pre-commit/issues/43) |
 | musl / Alpine | none |
 
 On an unsupported platform, run the hook from the
