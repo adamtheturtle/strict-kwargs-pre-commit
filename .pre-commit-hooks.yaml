@@ -6,7 +6,9 @@
   # run fails with `error: unrecognized subcommand` (exit 2).
   entry: strict-kwargs check
   language: python
-  types: [python]
+  # `strict-kwargs check` reports on `.pyi` as well as `.py`, but pre-commit's
+  # `python` tag matches only `.py`, so stubs were silently skipped.
+  types_or: [python, pyi]
   # strict-kwargs does one-time import-closure indexing per invocation, so a
   # single process over all files is faster than pre-commit's default
   # batched/parallel invocation.
