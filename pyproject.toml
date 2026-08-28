@@ -38,6 +38,40 @@ dev = [
     "pytest==9.1.1",
 ]
 
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # Conflicting docstring conventions; pick one of each pair.
+    "D203",
+    "D213",
+    # `update.py` is a CLI: stdout and stderr are its interface.
+    "T201",
+    # This repo carries no per-file copyright headers.
+    "CPY001",
+    # Exception messages read fine inline; the indirection these ask for
+    # makes short scripts harder to follow, not easier.
+    "EM101",
+    "EM102",
+    "TRY003",
+    # Assertions are how tests assert.
+    "S101",
+    # Ruff's own advice when the formatter is in use: COM812 adds trailing
+    # commas that the formatter then removes, so `ruff check --fix` and
+    # `ruff format` fight each other and pre-commit never converges.
+    "COM812",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into private helpers deliberately, and pytest fixtures shadow
+# their own names.
+# Tests reach into private helpers deliberately; stub callables must accept
+# the arguments of what they replace without using them; the suite is not a
+# package.
+"tests/*" = ["SLF001", "PLR2004", "INP001", "ARG001", "TC003"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # `update.py` sits at the repository root, not in a package.
