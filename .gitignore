@@ -7,3 +7,6 @@ dist/
 
 # uv writes this for the dev group; the published wheel is unaffected.
 uv.lock
+
+# Vale styles downloaded by `vale sync`.
+styles/
