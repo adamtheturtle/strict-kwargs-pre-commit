@@ -92,7 +92,7 @@ def test_refuses_explicitly_named_yanked_release(
     data = {
         "info": PYPI_FIXTURE["info"],
         "releases": {
-            **PYPI_FIXTURE["releases"],  # type: ignore[dict-item]
+            **PYPI_FIXTURE["releases"],
             "2026.9.1": [{"yanked": True, "yanked_reason": "broken wheel"}],
         },
     }
@@ -115,7 +115,7 @@ def test_skips_yanked_latest_release(
     data = {
         "info": {"version": "2026.9.1"},
         "releases": {
-            **PYPI_FIXTURE["releases"],  # type: ignore[dict-item]
+            **PYPI_FIXTURE["releases"],
             "2026.9.1": [{"yanked": True, "yanked_reason": "broken wheel"}],
         },
     }
@@ -134,7 +134,7 @@ def test_release_with_no_files_is_skipped(
     pyproject, _ = mirror
     data = {
         "info": {"version": "2026.9.1"},
-        "releases": {**PYPI_FIXTURE["releases"], "2026.9.1": []},  # type: ignore[dict-item]
+        "releases": {**PYPI_FIXTURE["releases"], "2026.9.1": []},
     }
     monkeypatch.setattr(update, "_pypi", lambda: data)
 

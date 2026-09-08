@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 import pytest
 
@@ -16,10 +17,18 @@ sys.path.insert(0, str(ROOT))
 
 import update  # noqa: E402
 
+
+class PypiFixture(TypedDict):
+    """The part of the PyPI JSON response used by the updater."""
+
+    info: dict[str, str]
+    releases: dict[str, list[dict[str, object]]]
+
+
 # A cut-down copy of https://pypi.org/pypi/strict-kwargs/json, keeping only the
 # keys update.py reads. Trimmed rather than invented: the shapes (including
 # `yanked` / `yanked_reason` on each file entry) are PyPI's.
-PYPI_FIXTURE: dict[str, object] = {
+PYPI_FIXTURE: PypiFixture = {
     "info": {"version": "2026.8.27.post2"},
     "releases": {
         "2026.8.16": [{"filename": "w.whl", "yanked": False, "yanked_reason": None}],
