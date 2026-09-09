@@ -1,21 +1,13 @@
-"""Shared fixtures for the ``update.py`` tests.
-
-``update.py`` lives at the repository root rather than in a package, so the
-root has to be importable before ``import update`` works.
-"""
+"""Shared fixtures for the ``update.py`` tests."""
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import TypedDict
 
 import pytest
 
-ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT))
-
-import update  # noqa: E402
+import update
 
 
 class PypiFixture(TypedDict):
