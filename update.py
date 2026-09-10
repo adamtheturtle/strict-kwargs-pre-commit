@@ -27,7 +27,7 @@ import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -44,16 +44,79 @@ PYPROJECT = Path(__file__).parent / "pyproject.toml"
 README = Path(__file__).parent / "README.md"
 
 
+class _PyPIFile(TypedDict):
+    """PyPI release-file fields used by the updater."""
+
+    yanked: bool
+    yanked_reason: NotRequired[str | None]
+
+
+class _PyPIInfo(TypedDict):
+    """PyPI project fields used by the updater."""
+
+    version: str
+
+
+class _PyPIData(TypedDict):
+    """The part of a PyPI project response used by the updater."""
+
+    info: _PyPIInfo
+    releases: dict[str, list[_PyPIFile]]
+
+
+def _is_string_object_dict(
+    value: object,
+    /,
+) -> TypeGuard[dict[str, object]]:
+    """Return whether a decoded JSON value is an object."""
+    # JSON object keys are strings by definition.
+    return isinstance(value, dict)
+
+
+def _is_object_list(value: object, /) -> TypeGuard[list[object]]:
+    """Return whether a value is a list."""
+    return isinstance(value, list)
+
+
+def _is_pypi_file(value: object, /) -> TypeGuard[_PyPIFile]:
+    """Return whether a value has the release-file fields we consume."""
+    if not _is_string_object_dict(value) or not isinstance(value.get("yanked"), bool):
+        return False
+    yank_reason = value.get("yanked_reason")
+    return yank_reason is None or isinstance(yank_reason, str)
+
+
+def _is_pypi_files(value: object, /) -> TypeGuard[list[_PyPIFile]]:
+    """Return whether a value is a list of usable release-file records."""
+    return _is_object_list(value) and all(_is_pypi_file(file) for file in value)
+
+
+def _is_pypi_data(value: object, /) -> TypeGuard[_PyPIData]:
+    """Return whether a value contains the required PyPI project fields."""
+    if not _is_string_object_dict(value):
+        return False
+    info = value.get("info")
+    if not _is_string_object_dict(info) or not isinstance(info.get("version"), str):
+        return False
+    releases = value.get("releases")
+    if not _is_string_object_dict(releases):
+        return False
+    return all(_is_pypi_files(files) for files in releases.values())
+
+
 def _pypi(
     *,
     attempts: int = FETCH_ATTEMPTS,
     sleep: Callable[[float], None] = time.sleep,
-) -> dict[str, Any]:
+) -> _PyPIData:
     """Fetch the strict-kwargs release metadata, retrying transient failures."""
     for attempt in range(attempts):
         try:
             with urllib.request.urlopen(PYPI_JSON, timeout=30) as response:
-                data: dict[str, Any] = json.load(response)
+                data: object = json.load(response)
+                if not _is_pypi_data(data):
+                    message = "PyPI returned an unexpected project response"
+                    raise ValueError(message)
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
             if attempt == attempts - 1:
                 raise
@@ -77,12 +140,12 @@ def _version_key(version: str) -> tuple[int, int, int, int]:
     return (int(year), int(month), int(day), int(post or 0))
 
 
-def _is_usable(files: list[dict[str, Any]]) -> bool:
+def _is_usable(files: list[_PyPIFile]) -> bool:
     """Whether a release has files and none of them are yanked."""
     return bool(files) and not all(file.get("yanked", False) for file in files)
 
 
-def _yank_reason(files: list[dict[str, Any]]) -> str:
+def _yank_reason(files: list[_PyPIFile]) -> str:
     """Return the first stated yank reason for a release, or a placeholder."""
     for file in files:
         reason = file.get("yanked_reason")
@@ -92,7 +155,7 @@ def _yank_reason(files: list[dict[str, Any]]) -> str:
     return "no reason given"
 
 
-def _latest_usable(data: dict[str, Any]) -> str:
+def _latest_usable(data: _PyPIData) -> str:
     """Return the newest release that is neither yanked nor file-less.
 
     ``info.version`` is not trusted for this: it can name a yanked release, and
