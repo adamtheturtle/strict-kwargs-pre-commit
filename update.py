@@ -47,7 +47,7 @@ README = Path(__file__).parent / "README.md"
 def _pypi(
     *,
     attempts: int = FETCH_ATTEMPTS,
-    sleep: Callable[[float], object] = time.sleep,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
     """Fetch the strict-kwargs release metadata, retrying transient failures."""
     for attempt in range(attempts):

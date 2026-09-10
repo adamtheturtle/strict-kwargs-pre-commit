@@ -10,11 +10,19 @@ import pytest
 import update
 
 
+class PypiFile(TypedDict):
+    """The PyPI file fields used by the updater tests."""
+
+    filename: str
+    yanked: bool
+    yanked_reason: str | None
+
+
 class PypiFixture(TypedDict):
     """The part of the PyPI JSON response used by the updater."""
 
     info: dict[str, str]
-    releases: dict[str, list[dict[str, object]]]
+    releases: dict[str, list[PypiFile]]
 
 
 # A cut-down copy of https://pypi.org/pypi/strict-kwargs/json, keeping only the
