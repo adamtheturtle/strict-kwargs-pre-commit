@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import urllib.error
 from pathlib import Path
+from typing import Never
 
 import pytest
 from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
@@ -255,7 +256,7 @@ def test_fetch_retries_transient_failures(
     """Regression test for #18: a blip retries instead of failing the cron."""
     attempts = []
 
-    def flaky(*args: object, **kwargs: object) -> object:
+    def flaky(*args: object, **kwargs: object) -> Never:
         attempts.append(1)
         if len(attempts) < 3:
             raise urllib.error.URLError("connection reset")
@@ -277,7 +278,7 @@ def test_fetch_gives_up_after_the_last_attempt(
 ) -> None:
     """Persistent failure still raises rather than looping forever."""
 
-    def always_fails(*args: object, **kwargs: object) -> object:
+    def always_fails(*args: object, **kwargs: object) -> Never:
         raise urllib.error.URLError("down")
 
     monkeypatch.setattr(update.urllib.request, "urlopen", always_fails)
@@ -290,7 +291,7 @@ def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """A truncated response is transient too, not a crash."""
     calls = []
 
-    def bad_json(*args: object, **kwargs: object) -> object:
+    def bad_json(*args: object, **kwargs: object) -> Never:
         calls.append(1)
         raise json.JSONDecodeError("truncated", "", 0)
 
