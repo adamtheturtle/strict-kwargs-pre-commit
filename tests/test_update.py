@@ -6,6 +6,7 @@ the suite is offline and does not change meaning when upstream releases.
 
 from __future__ import annotations
 
+import io
 import json
 import urllib.error
 from pathlib import Path
@@ -300,6 +301,38 @@ def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(json.JSONDecodeError):
         update._pypi(attempts=2, sleep=lambda _: None)
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        [],
+        {
+            "info": {"version": "2026.8.27.post2"},
+            "releases": {
+                "2026.8.27.post2": [{"yanked": "no"}],
+            },
+        },
+    ],
+)
+def test_main_rejects_unexpected_pypi_json(
+    *,
+    payload: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The CLI rejects valid JSON which does not match PyPI's schema."""
+    response = io.BytesIO(json.dumps(payload).encode())
+    monkeypatch.setattr(
+        update.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: response,
+    )
+
+    with pytest.raises(
+        expected_exception=ValueError,
+        match="unexpected project response",
+    ):
+        update.main(["update.py"])
 
 
 def test_rewrites_every_readme_rev(mirror: tuple[Path, Path]) -> None:
