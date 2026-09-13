@@ -48,7 +48,7 @@ jobs:
           python-version: '3.13'
 
       # For `uv tool install pre-commit` in the end-to-end check below.
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
           cache-dependency-glob: '**/pyproject.toml'
