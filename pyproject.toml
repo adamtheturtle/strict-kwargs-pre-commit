@@ -73,8 +73,8 @@ flake8-tidy-imports.banned-api."operator.attrgetter".msg = "operator.attrgetter 
 # package.
 "tests/*" = ["SLF001", "PLR2004", "INP001", "ARG001", "TC003"]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 testpaths = ["tests"]
 # `update.py` sits at the repository root, not in a package.
 pythonpath = ["."]
-addopts = "--strict-markers -ra"
+addopts = ["--strict-markers", "-ra"]
