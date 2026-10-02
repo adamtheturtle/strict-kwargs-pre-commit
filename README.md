@@ -50,7 +50,7 @@ On an unsupported platform, run the hook from the [upstream repo](https://github
 ## Pinning the `ty` version
 
 `strict-kwargs` uses [`ty`](https://github.com/astral-sh/ty) as its type-inference backend and depends on it as `ty>=0.0.52` — a floor, not a pin.
-`ty` is pre-1.0, so a new release can land in your hook environment and change which calls `strict-kwargs` can resolve.
+`ty` is pre-1.0, so a new release can be installed in your hook environment and change which calls `strict-kwargs` can resolve.
 Pin it for reproducible results across machines and over time:
 
 ```yaml
