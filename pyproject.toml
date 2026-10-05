@@ -37,9 +37,7 @@ py-modules = []
 dev = [
     "karva==0.0.1a12",
     "mypy==2.4.0",
-    "mypy-pytest-parametrize==2026.10.5",
-    # Keep pytest APIs so mypy-pytest-parametrize checks the test data.
-    "pytest==9.1.1",
+    "mypy-pytest-parametrize==2026.10.5.1",
 ]
 
 [tool.ruff]
@@ -70,8 +68,6 @@ ignore = [
 flake8-tidy-imports.banned-api."operator.attrgetter".msg = "operator.attrgetter is banned: use a lambda instead."
 
 [tool.ruff.lint.per-file-ignores]
-# Tests reach into private helpers deliberately, and pytest fixtures shadow
-# their own names.
 # Tests reach into private helpers deliberately; stub callables must accept
 # the arguments of what they replace without using them; the suite is not a
 # package.

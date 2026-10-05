@@ -12,10 +12,15 @@ import urllib.error
 from pathlib import Path
 from typing import Never
 
-import pytest
+import karva
 
 import update
-from tests.conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
+from tests.conftest import (
+    PYPI_FIXTURE,
+    PYPROJECT_TEMPLATE,
+    README_TEMPLATE,
+    CaptureFixture,
+)
 
 
 def test_bumps_pyproject(mirror: tuple[Path, Path]) -> None:
@@ -40,7 +45,7 @@ def test_bumps_readme_rev(mirror: tuple[Path, Path]) -> None:
 
 def test_reports_changed(
     mirror: tuple[Path, Path],
-    capsys: pytest.CaptureFixture[str],
+    capsys: CaptureFixture,
 ) -> None:
     """A bump prints ``changed=`` -- the string mirror.yml gates publishing on."""
     assert update.main(["update.py"]) == 0
@@ -49,7 +54,7 @@ def test_reports_changed(
 
 def test_reports_unchanged_when_in_sync(
     mirror: tuple[Path, Path],
-    capsys: pytest.CaptureFixture[str],
+    capsys: CaptureFixture,
 ) -> None:
     """A second run is a no-op, so the workflow does not re-tag."""
     update.main(["update.py"])
@@ -75,7 +80,7 @@ def test_explicit_version_accepts_upstream_tag_form(mirror: tuple[Path, Path]) -
 
 def test_unknown_version_is_rejected(
     mirror: tuple[Path, Path],
-    capsys: pytest.CaptureFixture[str],
+    capsys: CaptureFixture,
 ) -> None:
     """A version that is not on PyPI fails before anything is written."""
     pyproject, _ = mirror
@@ -86,8 +91,8 @@ def test_unknown_version_is_rejected(
 
 def test_refuses_explicitly_named_yanked_release(
     mirror: tuple[Path, Path],
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
+    monkeypatch: karva.MockEnv,
+    capsys: CaptureFixture,
 ) -> None:
     """A yanked version is refused, with the reason PyPI gave."""
     pyproject, _ = mirror
@@ -109,8 +114,8 @@ def test_refuses_explicitly_named_yanked_release(
 
 def test_skips_yanked_latest_release(
     mirror: tuple[Path, Path],
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
+    monkeypatch: karva.MockEnv,
+    capsys: CaptureFixture,
 ) -> None:
     """``info.version`` naming a yanked release falls back to the newest good one."""
     pyproject, _ = mirror
@@ -130,7 +135,7 @@ def test_skips_yanked_latest_release(
 
 def test_release_with_no_files_is_skipped(
     mirror: tuple[Path, Path],
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: karva.MockEnv,
 ) -> None:
     """A registered version with no uploaded files cannot be installed."""
     pyproject, _ = mirror
@@ -144,7 +149,7 @@ def test_release_with_no_files_is_skipped(
     assert 'version = "2026.8.27.post2"' in pyproject.read_text()
 
 
-@pytest.mark.parametrize(
+@karva.tags.parametrize(
     ("versions", "expected"),
     [
         (["2026.8.16", "2026.12.1"], "2026.12.1"),
@@ -164,13 +169,13 @@ def test_version_ordering(versions: list[str], expected: str) -> None:
 
 def test_unparseable_version_is_skipped() -> None:
     """A version outside the documented calver scheme is not ranked."""
-    with pytest.raises(ValueError, match="unrecognised"):
+    with karva.raises(ValueError, match="unrecognised"):
         update._version_key("1.0.0rc1")
 
 
 def test_verify_catches_version_line_that_stopped_matching(
     mirror: tuple[Path, Path],
-    capsys: pytest.CaptureFixture[str],
+    capsys: CaptureFixture,
 ) -> None:
     """Regression test for #12.
 
@@ -186,7 +191,7 @@ def test_verify_catches_version_line_that_stopped_matching(
         ),
     )
 
-    with pytest.raises(SystemExit) as excinfo:
+    with karva.raises(SystemExit) as excinfo:
         update.main(["update.py"])
     assert "sync did not apply cleanly" in str(excinfo.value)
     assert "expected '2026.8.27.post2'" in str(excinfo.value)
@@ -203,7 +208,7 @@ def test_verify_catches_dependency_pin_drift(mirror: tuple[Path, Path]) -> None:
         ),
     )
 
-    with pytest.raises(SystemExit) as excinfo:
+    with karva.raises(SystemExit) as excinfo:
         update.main(["update.py"])
     assert "dependency pins" in str(excinfo.value)
 
@@ -213,7 +218,7 @@ def test_verify_catches_missing_readme_rev(mirror: tuple[Path, Path]) -> None:
     _, readme = mirror
     readme.write_text("# strict-kwargs-pre-commit\n\nNo example here.\n")
 
-    with pytest.raises(SystemExit) as excinfo:
+    with karva.raises(SystemExit) as excinfo:
         update.main(["update.py"])
     assert "no example config with a 'rev:' line" in str(excinfo.value)
 
@@ -233,7 +238,7 @@ def test_failed_verification_writes_nothing(mirror: tuple[Path, Path]) -> None:
     pyproject.write_text(broken)
     readme_before = readme.read_text()
 
-    with pytest.raises(SystemExit):
+    with karva.raises(SystemExit):
         update.main(["update.py"])
 
     assert pyproject.read_text() == broken
@@ -251,8 +256,8 @@ def test_written_pyproject_is_still_valid_toml(mirror: tuple[Path, Path]) -> Non
 
 
 def test_fetch_retries_transient_failures(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
+    monkeypatch: karva.MockEnv,
+    capsys: CaptureFixture,
 ) -> None:
     """Regression test for #18: a blip retries instead of failing the cron."""
     attempts = []
@@ -266,7 +271,7 @@ def test_fetch_retries_transient_failures(
     monkeypatch.setattr(update.urllib.request, "urlopen", flaky)
     slept: list[float] = []
 
-    with pytest.raises(AssertionError, match="should not be reached"):
+    with karva.raises(AssertionError, match="should not be reached"):
         update._pypi(sleep=slept.append)
 
     assert len(attempts) == 3
@@ -275,7 +280,7 @@ def test_fetch_retries_transient_failures(
 
 
 def test_fetch_gives_up_after_the_last_attempt(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: karva.MockEnv,
 ) -> None:
     """Persistent failure still raises rather than looping forever."""
 
@@ -284,11 +289,11 @@ def test_fetch_gives_up_after_the_last_attempt(
 
     monkeypatch.setattr(update.urllib.request, "urlopen", always_fails)
 
-    with pytest.raises(urllib.error.URLError):
+    with karva.raises(urllib.error.URLError):
         update._pypi(attempts=2, sleep=lambda _: None)
 
 
-def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_retries_malformed_json(monkeypatch: karva.MockEnv) -> None:
     """A truncated response is transient too, not a crash."""
     calls = []
 
@@ -298,12 +303,12 @@ def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(update.urllib.request, "urlopen", bad_json)
 
-    with pytest.raises(json.JSONDecodeError):
+    with karva.raises(json.JSONDecodeError):
         update._pypi(attempts=2, sleep=lambda _: None)
     assert len(calls) == 2
 
 
-@pytest.mark.parametrize(
+@karva.tags.parametrize(
     "payload",
     [
         [],
@@ -318,7 +323,7 @@ def test_fetch_retries_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_main_rejects_unexpected_pypi_json(
     *,
     payload: object,
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: karva.MockEnv,
 ) -> None:
     """The CLI rejects valid JSON which does not match PyPI's schema."""
     response = io.BytesIO(json.dumps(payload).encode())
@@ -328,7 +333,7 @@ def test_main_rejects_unexpected_pypi_json(
         lambda *_args, **_kwargs: response,
     )
 
-    with pytest.raises(
+    with karva.raises(
         expected_exception=ValueError,
         match="unexpected project response",
     ):
@@ -355,7 +360,7 @@ def test_rewrites_every_readme_rev(mirror: tuple[Path, Path]) -> None:
 
 
 def test_verify_catches_a_stale_second_rev(
-    mirror: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+    mirror: tuple[Path, Path], monkeypatch: karva.MockEnv
 ) -> None:
     """A rev the rewrite could not reach fails the run rather than shipping."""
     _, readme = mirror
@@ -369,7 +374,7 @@ def test_verify_catches_a_stale_second_rev(
         lambda text, target: text.replace("2026.8.16", target, 1),
     )
 
-    with pytest.raises(SystemExit) as excinfo:
+    with karva.raises(SystemExit) as excinfo:
         update.main(["update.py"])
     assert "still pin ['1999.1.1']" in str(excinfo.value)
 
@@ -389,7 +394,7 @@ def test_mirror_revision_rev_is_left_alone(mirror: tuple[Path, Path]) -> None:
 
 
 def test_mirror_revision_reports_unchanged(
-    mirror: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
+    mirror: tuple[Path, Path], capsys: CaptureFixture
 ) -> None:
     """The daily cron must stay quiet after a mirror-only re-release.
 
@@ -422,7 +427,7 @@ def test_verify_rejects_an_unrelated_mirror_revision() -> None:
     Takes no fixture: `_verify` is pure, so the candidate contents are passed
     directly rather than staged on disk.
     """
-    with pytest.raises(SystemExit) as excinfo:
+    with karva.raises(SystemExit) as excinfo:
         update._verify(
             "2026.8.27.post2",
             pyproject=PYPROJECT_TEMPLATE.format(version="2026.8.27.post2"),

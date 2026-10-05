@@ -3,11 +3,33 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TypedDict
+from typing import Protocol, TypedDict
 
-import pytest
+import karva
 
 import update
+
+
+class CapturedOutput(Protocol):
+    """Text returned by the output capture fixture."""
+
+    @property
+    def out(self) -> str:
+        """Captured standard output."""
+        ...
+
+    @property
+    def err(self) -> str:
+        """Captured standard error."""
+        ...
+
+
+class CaptureFixture(Protocol):
+    """The output capture operations used by the suite."""
+
+    def readouterr(self) -> CapturedOutput:
+        """Return captured output and reset the buffers."""
+        ...
 
 
 class PypiFile(TypedDict):
@@ -71,10 +93,10 @@ repos:
 """
 
 
-@pytest.fixture(name="mirror")
-def mirror_fixture(
+@karva.fixture
+def mirror(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: karva.MockEnv,
 ) -> tuple[Path, Path]:
     """Build a throwaway mirror checkout pinned to 2026.8.16, PyPI stubbed out.
 
