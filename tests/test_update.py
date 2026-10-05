@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import Never
 
 import pytest
-from conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
 
 import update
+from tests.conftest import PYPI_FIXTURE, PYPROJECT_TEMPLATE, README_TEMPLATE
 
 
 def test_bumps_pyproject(mirror: tuple[Path, Path]) -> None:
