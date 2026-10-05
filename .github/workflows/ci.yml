@@ -55,6 +55,9 @@ jobs:
           enable-cache: true
           cache-dependency-glob: '**/pyproject.toml'
 
+      - name: Check Python types
+        run: uv run --group dev --python ${{ matrix.python-version }} -m mypy
+
       - name: Run the tests
         run: uv run --group dev --python ${{ matrix.python-version }} pytest
 
