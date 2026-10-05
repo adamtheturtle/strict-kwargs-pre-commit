@@ -35,6 +35,8 @@ py-modules = []
 # Test-only; the published wheel stays code-free and carries no dev deps.
 [dependency-groups]
 dev = [
+    "mypy==2.4.0",
+    "mypy-pytest-parametrize==2026.10.5",
     "pytest==9.1.1",
 ]
 
@@ -78,3 +80,7 @@ testpaths = ["tests"]
 # `update.py` sits at the repository root, not in a package.
 pythonpath = ["."]
 addopts = ["--strict-markers", "-ra"]
+
+[tool.mypy]
+files = ["update.py", "tests"]
+plugins = ["mypy_pytest_parametrize"]
