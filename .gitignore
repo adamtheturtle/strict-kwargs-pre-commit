@@ -10,3 +10,7 @@ uv.lock
 
 # Vale styles downloaded by `vale sync`.
 styles/
+
+# Karva test results and duration cache.
+.karva/
+.karva_cache/

@@ -35,9 +35,9 @@ py-modules = []
 # Test-only; the published wheel stays code-free and carries no dev deps.
 [dependency-groups]
 dev = [
+    "karva==0.0.1a12",
     "mypy==2.4.0",
-    "mypy-pytest-parametrize==2026.10.5",
-    "pytest==9.1.1",
+    "mypy-pytest-parametrize==2026.10.5.1",
 ]
 
 [tool.ruff]
@@ -68,19 +68,19 @@ ignore = [
 flake8-tidy-imports.banned-api."operator.attrgetter".msg = "operator.attrgetter is banned: use a lambda instead."
 
 [tool.ruff.lint.per-file-ignores]
-# Tests reach into private helpers deliberately, and pytest fixtures shadow
-# their own names.
 # Tests reach into private helpers deliberately; stub callables must accept
 # the arguments of what they replace without using them; the suite is not a
 # package.
 "tests/*" = ["SLF001", "PLR2004", "INP001", "ARG001", "TC003"]
 
-[tool.pytest]
-testpaths = ["tests"]
-# `update.py` sits at the repository root, not in a package.
-pythonpath = ["."]
-addopts = ["--strict-markers", "-ra"]
+[tool.karva.profile.default]
+src.include = ["tests"]
+test.strict-tags = true
 
 [tool.mypy]
 files = ["update.py", "tests"]
 plugins = ["mypy_pytest_parametrize"]
+
+[tool.uv]
+# Karva alpha.12 supports Python 3.10 through 3.14.
+dependency-groups.dev = { requires-python = "<3.15" }
