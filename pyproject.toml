@@ -78,6 +78,7 @@ src.include = ["tests"]
 test.strict-tags = true
 
 [tool.mypy]
+show_traceback = true
 files = ["update.py", "tests"]
 plugins = ["mypy_pytest_parametrize"]
 
