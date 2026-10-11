@@ -21,6 +21,14 @@ authors = [
     { name = "Adam Dangoor", email = "adamdangoor@gmail.com" },
 ]
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
 dependencies = [
     "strict-kwargs==2026.10.9",
 ]
@@ -35,7 +43,7 @@ py-modules = []
 # Test-only; the published wheel stays code-free and carries no dev deps.
 [dependency-groups]
 dev = [
-    "karva==0.0.1a12",
+    "karva==0.0.1a13",
     "mypy==2.4.0",
     "mypy-pytest-parametrize==2026.10.5.1",
 ]
@@ -83,5 +91,5 @@ files = ["update.py", "tests"]
 plugins = ["mypy_pytest_parametrize"]
 
 [tool.uv]
-# Karva alpha.12 supports Python 3.10 through 3.14.
-dependency-groups.dev = { requires-python = "<3.15" }
+# Karva alpha.13 supports Python 3.10 through 3.15.
+dependency-groups.dev = { requires-python = "<3.16" }
