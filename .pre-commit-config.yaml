@@ -37,7 +37,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.29.0
+    rev: v1.31.1
     hooks:
       # This repo's workflows hold contents:write and push tags.
       - id: zizmor
