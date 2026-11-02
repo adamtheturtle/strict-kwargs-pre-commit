@@ -109,5 +109,5 @@ def mirror(
 
     monkeypatch.setattr(update, "PYPROJECT", pyproject)
     monkeypatch.setattr(update, "README", readme)
-    monkeypatch.setattr(update, "_pypi", lambda: PYPI_FIXTURE)
+    monkeypatch.setattr(update, "_pypi", lambda **_kwargs: PYPI_FIXTURE)
     return pyproject, readme

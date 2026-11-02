@@ -106,8 +106,8 @@ def _is_pypi_data(value: object, /) -> TypeGuard[_PyPIData]:
 
 def _pypi(
     *,
-    attempts: int = FETCH_ATTEMPTS,
-    sleep: Callable[[float], None] = time.sleep,
+    attempts: int,
+    sleep: Callable[[float], None],
 ) -> _PyPIData:
     """Fetch the strict-kwargs release metadata, retrying transient failures."""
     for attempt in range(attempts):
@@ -273,7 +273,7 @@ def _verify(target: str, *, pyproject: str, readme: str) -> None:
 
 def main(argv: list[str]) -> int:
     """Sync the mirror to the requested version and report what changed."""
-    data = _pypi()
+    data = _pypi(attempts=FETCH_ATTEMPTS, sleep=time.sleep)
     if len(argv) > 1:
         target = _normalize_version(argv[1])
         if target not in data["releases"]:

@@ -46,6 +46,7 @@ dev = [
     "karva==0.0.1a13",
     "mypy==2.4.1",
     "mypy-pytest-parametrize==2026.10.5.1",
+    "no-defaults==2026.9.1",
 ]
 
 [tool.ruff]
@@ -53,6 +54,7 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["ALL"]
+external = ["NOD"]
 ignore = [
     # Conflicting docstring conventions; pick one of each pair.
     "D203",
@@ -93,3 +95,7 @@ plugins = ["mypy_pytest_parametrize"]
 [tool.uv]
 # Karva alpha.13 supports Python 3.10 through 3.15.
 dependency-groups.dev = { requires-python = "<3.16" }
+
+[tool.no_defaults]
+private_only = true
+per_file_enforcement."tests/**" = "all"
