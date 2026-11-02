@@ -44,6 +44,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: no-defaults
+        name: no-defaults
+        entry: uv run --group dev no-defaults
+        language: python
+        additional_dependencies: [uv==0.11.7]
+        types: [python]
+        require_serial: true
       - id: mypy
         name: mypy
         entry: uv run --group dev -m mypy

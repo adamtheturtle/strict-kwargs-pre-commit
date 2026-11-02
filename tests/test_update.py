@@ -103,7 +103,7 @@ def test_refuses_explicitly_named_yanked_release(
             "2026.9.1": [{"yanked": True, "yanked_reason": "broken wheel"}],
         },
     }
-    monkeypatch.setattr(update, "_pypi", lambda: data)
+    monkeypatch.setattr(update, "_pypi", lambda **_kwargs: data)
 
     assert update.main(["update.py", "2026.9.1"]) == 1
     error = capsys.readouterr().err
@@ -126,7 +126,7 @@ def test_skips_yanked_latest_release(
             "2026.9.1": [{"yanked": True, "yanked_reason": "broken wheel"}],
         },
     }
-    monkeypatch.setattr(update, "_pypi", lambda: data)
+    monkeypatch.setattr(update, "_pypi", lambda **_kwargs: data)
 
     assert update.main(["update.py"]) == 0
     assert 'version = "2026.8.27.post2"' in pyproject.read_text()
@@ -143,7 +143,7 @@ def test_release_with_no_files_is_skipped(
         "info": {"version": "2026.9.1"},
         "releases": {**PYPI_FIXTURE["releases"], "2026.9.1": []},
     }
-    monkeypatch.setattr(update, "_pypi", lambda: data)
+    monkeypatch.setattr(update, "_pypi", lambda **_kwargs: data)
 
     assert update.main(["update.py"]) == 0
     assert 'version = "2026.8.27.post2"' in pyproject.read_text()
@@ -272,7 +272,7 @@ def test_fetch_retries_transient_failures(
     slept: list[float] = []
 
     with karva.raises(AssertionError, match="should not be reached"):
-        update._pypi(sleep=slept.append)
+        update._pypi(attempts=update.FETCH_ATTEMPTS, sleep=slept.append)
 
     assert len(attempts) == 3
     assert slept == [1, 2], "backoff should double between attempts"
