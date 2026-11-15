@@ -71,6 +71,7 @@ The git tag, the package `version`, and the `strict-kwargs==` dependency pin in 
 The workflow runs the required CI checks on a temporary branch before pushing the same commit and tag to `main` atomically.
 It explicitly dispatches CI because pushes authenticated with `GITHUB_TOKEN` do not trigger workflows.
 The temporary branch is removed after publishing or a failed check.
+A failed required check leaves `main` and the release tag unchanged.
 
 ```bash
 python update.py            # sync to the latest strict-kwargs on PyPI
