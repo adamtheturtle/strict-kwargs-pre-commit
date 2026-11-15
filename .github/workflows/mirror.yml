@@ -39,6 +39,7 @@ jobs:
       # Dispatch CI for the release commit and wait for its required checks.
       actions: write
       checks: read
+      statuses: write
 
     steps:
       - uses: actions/checkout@v7
@@ -180,6 +181,18 @@ jobs:
               --json databaseId --jq '.[0].databaseId // empty')"
             if [ -n "$run_id" ]; then
               gh run watch "$run_id" --exit-status --interval 10
+              # Rulesets ignore workflow_dispatch check runs. Report the
+              # successful CI jobs as commit statuses they can enforce.
+              jobs="$(gh api --paginate \
+                "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs" \
+                --jq '.jobs[] | select(.conclusion == "success") | [.name, .html_url] | @tsv')"
+              while IFS=$'\t' read -r name url; do
+                gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
+                  --method POST --field state=success --field context="$name" \
+                  --field target_url="$url" \
+                  --field description="Passed CI for the mirror release commit" \
+                  --silent
+              done <<< "$jobs"
               exit 0
             fi
             echo "Waiting for the CI run to appear ($attempt/30)"
