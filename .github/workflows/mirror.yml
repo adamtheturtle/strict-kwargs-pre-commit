@@ -36,6 +36,9 @@ jobs:
     permissions:
       # Push the version bump + tag and create the matching release.
       contents: write
+      # Dispatch CI for the release commit and wait for its required checks.
+      actions: write
+      checks: read
 
     steps:
       - uses: actions/checkout@v7
@@ -156,6 +159,35 @@ jobs:
           # bump commit, so this exercises the version about to be tagged.
           tests/e2e.sh
 
+      - name: Run required checks on the release commit
+        id: checks
+        if: steps.guard.outputs.publish == 'true'
+        timeout-minutes: 20
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="mirror-release/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          sha="$(git rev-parse HEAD)"
+          git push origin "HEAD:refs/heads/${branch}"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+          # GITHUB_TOKEN pushes do not trigger CI. An explicit dispatch does,
+          # and its checks attach to the exact commit we will push to main.
+          gh workflow run ci.yml --ref "$branch"
+          for attempt in {1..30}; do
+            run_id="$(gh run list --workflow ci.yml --branch "$branch" \
+              --commit "$sha" --event workflow_dispatch --limit 1 \
+              --json databaseId --jq '.[0].databaseId // empty')"
+            if [ -n "$run_id" ]; then
+              gh run watch "$run_id" --exit-status --interval 10
+              exit 0
+            fi
+            echo "Waiting for the CI run to appear ($attempt/30)"
+            sleep 2
+          done
+          echo "Error: no CI run found for release commit $sha" >&2
+          exit 1
+
       - name: Tag, push and release
         if: steps.guard.outputs.publish == 'true'
         env:
@@ -166,7 +198,7 @@ jobs:
 
           # Atomic: a rejected tag must not leave a bump commit on main with
           # no matching tag or release.
-          git push --atomic origin HEAD "refs/tags/${VERSION}"
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/${VERSION}"
 
           # Upstream tags a post-release as `-post.N`; PyPI (and so this
           # mirror) normalises it to `.postN`. Linking the unconverted string
@@ -189,3 +221,9 @@ jobs:
           fi
 
           gh release create "${VERSION}" --title "${VERSION}" --notes-file "${notes}"
+
+      - name: Delete the temporary release branch
+        if: always() && steps.checks.outputs.branch != ''
+        env:
+          BRANCH: ${{ steps.checks.outputs.branch }}
+        run: git push origin --delete "$BRANCH"

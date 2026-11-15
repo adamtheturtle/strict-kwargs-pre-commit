@@ -68,6 +68,9 @@ pre-commit rebuilds the hook environment when `additional_dependencies` changes,
 
 The git tag, the package `version`, and the `strict-kwargs==` dependency pin in `pyproject.toml` are always the same string and track upstream releases one-to-one.
 `update.py` performs the bump (run it manually or let `.github/workflows/mirror.yml` run it on a schedule), then a tag and GitHub release are published for the new version.
+The workflow runs the required CI checks on a temporary branch before pushing the same commit and tag to `main` atomically.
+It explicitly dispatches CI because pushes authenticated with `GITHUB_TOKEN` do not trigger workflows.
+The temporary branch is removed after publishing or a failed check.
 
 ```bash
 python update.py            # sync to the latest strict-kwargs on PyPI
