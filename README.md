@@ -70,7 +70,7 @@ The git tag, the package `version`, and the `strict-kwargs==` dependency pin in 
 `update.py` performs the bump (run it manually or let `.github/workflows/mirror.yml` run it on a schedule), then a tag and GitHub release are published for the new version.
 The workflow runs the required CI checks on a temporary branch before pushing the same commit and tag to `main` atomically.
 It explicitly dispatches CI because pushes authenticated with `GITHUB_TOKEN` do not trigger workflows.
-GitHub's branch rules ignore checks from manually dispatched workflows, so the mirror reports successful CI jobs as commit statuses before pushing.
+GitHub's branch rules ignore checks from manually dispatched workflows. The mirror reports successful CI jobs as commit statuses before pushing.
 The temporary branch is removed after publishing or a failed check.
 A failed required check leaves `main` and the release tag unchanged.
 
@@ -112,7 +112,7 @@ Ordinary syncs are unaffected: when upstream next releases, the tag is a plain v
 
 #### Cutting one
 
-Rare enough not to be worth a workflow.
+These updates are infrequent.
 From an up-to-date `main` with the fix already merged:
 
 1. Point every `rev:` in `README.md` at the new tag — `<version>-mirror.1`, or the next `N` if one already exists.
@@ -129,7 +129,7 @@ From an up-to-date `main` with the fix already merged:
      --notes "Mirror-only fix; installs the same strict-kwargs release."
    ```
 
-`update.py` recognises a `rev:` carrying a mirror revision of the current version and leaves it in place, so the daily sync stays quiet afterwards.
+When `rev:` already refers to a mirror revision of the current version, `update.py` preserves it and the daily sync leaves the branch unchanged.
 
 ## License
 

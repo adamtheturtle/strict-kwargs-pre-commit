@@ -4,4 +4,4 @@
 uv run --group dev karva test
 ```
 
-The suite is offline: `conftest.PYPI_FIXTURE` is a trimmed copy of <https://pypi.org/pypi/strict-kwargs/json>, so tests do not reach the network and do not change meaning when upstream publishes a release.
+The suite runs offline, using `conftest.PYPI_FIXTURE` as a fixed copy of data from <https://pypi.org/pypi/strict-kwargs/json>.
